@@ -1,0 +1,30 @@
+00 lda 2
+. sta 1
+. sta 1
+. sta 1
+. sta 1
+. sta 1
+. sta 1
+. sta 1
+. sta 1
+. sta 1
+10ff jmp -4
+. sta 11
+
+
+myadd jze 0
+. lda 1
+. lda 1
+. sta 2
+
+myadd:
+.jze 0
+.lda 1
+.sta 2
+
+mylabel lda 5
+
+d lda mylabel
+
+100 10  ; Will hold true btw
+

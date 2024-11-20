@@ -1,0 +1,10 @@
+start:
+.lda #idx
+.call add
+.stp
+
+
+add:
+.add #10, #12
+.sta d2 ; d1 is used by call and ret and d0 by some variations of add, div, ...
+.ret

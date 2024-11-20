@@ -1,0 +1,40 @@
+00 lda 2 ; You can also use the label start to signal the start, the label start can't be used anywhere else.
+. sta 1
+. sta 1
+. sta 1
+. sta 1
+. sta 1
+. sta 1
+. sta 1
+. sta 1
+. sta 1
+10ff jmp -4 ; Hier kannst du extra nummer labels definieren um klar zu machen das du auch hierhin springen kannst
+. sta 11
+
+
+start:
+.sta 12
+
+
+myadd jze 0
+. lda 1
+. lda 1
+. sta 2
+
+myadd:
+.jze 0
+.lda 1
+.sta 2
+
+mylabel lda 5
+
+; lda mylabel ; This is a label too, but a dynamic one. So you won't know where it ends up in advance
+la lda mylabel
+.sta d10 ; This means data 10, so you don't need to worry where to store it
+.jmp -2
+.div #1, 20 ; This will overwrite ACC
+.sta 10, #2 ; This will overwrite ACC
+
+
+100 10  ; Will hold true btw
+

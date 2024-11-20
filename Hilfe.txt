@@ -1,0 +1,26 @@
+Die Befehle
+LDA #xx  AKKU := xx
+LDA  xx  AKKU := RAM[xx] 
+LDA (xx) AKKU := RAM[RAM[xx]] 
+
+STA  xx  RAM[xx] := AKKU
+STA (xx) RAM[RAM[xx]] := AKKU
+
+ADD  xx  AKKU := AKKU+RAM[xx] 
+SUB  xx  AKKU := AKKU-RAM[xx] 
+MUL  xx  AKKU := AKKU*RAM[xx]
+DIV  xx  AKKU := AKKU DIV RAM[xx]
+
+JMP  xx  PZ := xx
+JMP (xx) PZ := RAM[xx]
+
+JNZ  xx  PZ := xx, wenn AKKU <> 0
+JNZ (xx) PZ := RAM[xx], wenn AKKU <> 0
+
+JZE  xx  PZ := xx, wenn AKKU = 0
+JZE (xx) PZ := RAM[xx], wenn AKKU = 0
+
+JLE  xx  PZ := xx, wenn AKKU < = 0
+JLE (xx) PZ := RAM[xx], wenn AKKU < = 0
+
+STP      STOP
