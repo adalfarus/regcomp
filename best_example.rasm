@@ -6,5 +6,5 @@ start:
 
 add:
 .add #10, #12
-.sta d2 ; d1 is used by call and ret and d0 by some variations of add, div, ...
+.sta d2 ; d1 is used by call and ret and d0 by some variations of add, div, ... . Also keep in mind that using call again will overwrite the return address.
 .ret
