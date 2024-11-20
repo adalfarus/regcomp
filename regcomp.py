@@ -213,6 +213,9 @@ def main(input: str, output: str) -> None:
                 valid_list = valid_commands.get(instruction, None)
                 if instruction.isalpha() and len(instruction) == 1:  # Enable single char data
                     rel_labels[i] = str(ord(instruction))  # Has to be str
+                    continue
+                elif data[1:].isalpha() and len(data[1:]) == 1 and data[0] == "#":
+                    data = "#" + str(ord(data[1:]))  # Has to be str
                 elif instruction.isnumeric():
                     continue
                 elif valid_list is None:
@@ -274,8 +277,10 @@ def main(input: str, output: str) -> None:
                             rel_labels[i] = ["jmp (d1)"]
                         else:  # We also can't detect them yet
                             print("We do not know the indices yet so we can't resolve the jumps")
-                    # else:
-                    #     print("No modification needed")
+                    else:
+                        if 0:
+                            print("No modification needed")
+                        rel_labels[i] = f"{instruction} {data}"
                 if not match:
                     raise ValueError(f"Data {data} did not match any valid pattern of the instruction {instruction}")
     lookup_table: dict[str, int | str] = {"start": 0}
