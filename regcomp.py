@@ -293,6 +293,32 @@ def main(input: str, output: str) -> None:
     data_cell_lookup_table: dict[str, int] = {}  # We currently allocate them all in one chunk
     for label, rel_labels in labels_in_order:
         new_address = get_gap_of_size(len(rel_labels) + 1, reserved, max_address)
+
+        for i, rlabel in enumerate(rel_labels.copy()):  # Do not modify a list you're iterating over
+            if isinstance(rlabel, list):
+                continue
+            inst, data, *_ = rlabel.split(" ", maxsplit=1) + [""]
+            if inst in ("jmp", "jnz", "jze", "jle") and data.lstrip('+-').isnumeric():
+                reljump = int(data)
+                position = i
+                last_position = position + reljump
+                while position != last_position:
+                    if reljump > 0:
+                        position += 1
+                        if position >= len(rel_labels):
+                            raise IndexError("Traversal went out of bounds")
+                        if isinstance(rel_labels[position], list):
+                            reljump -= 1
+                            reljump += len(rel_labels[position])
+                    elif reljump < 0:
+                        position -= 1
+                        if position < 0:
+                            raise IndexError("Traversal went out of bounds")
+                        if isinstance(rel_labels[position], list):
+                            reljump += 1
+                            reljump -= len(rel_labels[position])
+                rel_labels[i] = f"{inst} {reljump}"
+
         rel_labels = unnest_iterable(rel_labels)  # Means flattening the list
 
         if new_address == -1:
@@ -336,7 +362,7 @@ def main(input: str, output: str) -> None:
         dat = replace_placeholders_with_whitespace_condition(dat, all_placeholders, lookup_table)
         if inst in ("jmp", "jnz", "jze", "jle"):
             if dat.startswith("-") or dat.startswith("+"):
-                cool_reserved[idx] = f"{i} {inst} {i + int(dat) + 1}\n"
+                cool_reserved[idx] = f"{i} {inst} {i + int(dat)}\n"
                 i += 1
                 continue
         cool_reserved[idx] = f"{i} {inst} {dat}\n"

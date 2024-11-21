@@ -2,12 +2,14 @@ start:
 .lda #a
 .lda #idx
 .call add
+.jmp -1
 .stp
 
 
 add:
 .add #10, #12
 .sta d2 ; d1 is used by call and ret and d0 by some variations of add, div, ... . Also keep in mind that using call again will overwrite the return address.
+.jze -2
 .ret
 
 100 a

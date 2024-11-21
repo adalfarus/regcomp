@@ -8,7 +8,7 @@
 7 sta 1
 8 sta 1
 9 sta 1
-10 jmp 7
+10 jmp 6
 11 sta 11
 12 jze 0
 13 lda 1
