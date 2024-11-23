@@ -537,7 +537,8 @@ def main(input: str, output: str, target: _ty.Literal["pASM", "x86-64"]) -> None
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="REG-COMP: A simple register compiler.")
     parser.add_argument("input", help="Path to the input file")
-    parser.add_argument("-o", nargs="?", default="out.asm", help="Path to the output file")
+    parser.add_argument("output", nargs="?", default="out.asm", help="Path to the output file")
+    parser.add_argument("-o", nargs="?", default="", help="Path to the output file")
     parser.add_argument("--target", choices=["sspASM", "spASM", "pASM", "x86-64"], required=True,
                         help="Compilation target: pASM or x86-64")
     parser.add_argument("--logging-mode", choices=["DEBUG", "INFO", "WARN", "ERROR"], default="INFO",
@@ -556,7 +557,7 @@ if __name__ == "__main__":
     logging.info(f"Starting compilation for target: {target}")
 
     input = os.path.abspath(args.input)
-    output = os.path.abspath(args.o)
+    output = os.path.abspath(args.o or args.output)
     if not input.endswith(".rasm") or not os.path.exists(input):
         logging.error(f"The input file ({input}) needs to be of type RASM and exist")
     elif not output.endswith(".asm"):
