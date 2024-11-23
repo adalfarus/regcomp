@@ -1,0 +1,23 @@
+00 sta w0, #hello #0 ; null terminator
+.  sta t0, #0 #0 #0 #0 #0 #0 ; t=output
+.  sta k0, #3 ; key = 3
+start:
+.  sta d1, #w0
+.  sta d2, #t0
+.  sta d3, k0
+.  call encrypt_loop
+.  stp
+
+encrypt_loop:
+.  lda (d1)
+.  jze end_loop
+.  add d3
+.  sta (d2)
+.  add #1, d1
+.  sta d1
+.  add #1, d2
+.  sta d2
+.  jmp encrypt_loop
+
+end_loop:
+.  ret

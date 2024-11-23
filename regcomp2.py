@@ -181,15 +181,14 @@ def get_gap_of_size(t: int, in_this: dict[int, list], until_address: int) -> int
     return -1  # No gap large enough for t found, so we return an error value
 
 
-def replace_placeholders_with_whitespace_condition(dat, all_placeholders, lookup_table):
+def replace_placeholders_with_non_alpha_conditions(dat, all_placeholders, lookup_table):
     for placeholder in all_placeholders:
-        # Create a pattern that matches each placeholder preceded by a whitespace or start of string,
-        # and followed by a whitespace or end of string
-        pattern = r'(^|\s)' + re.escape(placeholder) + r'(\s|$)'
+        # Create a pattern that ensures no alphabetic characters are adjacent to the placeholder
+        pattern = r'(?<![A-Za-z])' + re.escape(placeholder) + r'(?![A-Za-z])'
 
         # Replace the matched placeholder with the corresponding value from the lookup_table
         dat = re.sub(pattern,
-                     lambda m: m.group(1) + str(lookup_table.get(m.group(0).strip(), m.group(0).strip())) + m.group(2),
+                     lambda m: str(lookup_table.get(m.group(0), m.group(0))),
                      dat)
 
     return dat
@@ -294,6 +293,7 @@ def main(input: str, output: str, target: _ty.Literal["pASM", "x86-64"]) -> None
     logging.debug(f"Labels: {labels}")
     # All used data labels are stored in this set. s0 and s1 are used for instructions. d{num} is used by the programmer
     data_labels: set[str] = {"s0", "s1"}
+    continued_data_labels: list[tuple[str, int]] = []
     labels: list[tuple[str, list[Instruction | list[Instruction]]]] = [(k, v) for k, v in labels.items()]
 
     # Next we go over all instructions again and check what kind they are, if they are C() we need to change them.
@@ -307,8 +307,37 @@ def main(input: str, output: str, target: _ty.Literal["pASM", "x86-64"]) -> None
                 if rel_inst.op_code.isalpha() and len(rel_inst.op_code) == 1:
                     rel_inst.op_code = str(ord(rel_inst.op_code))
                     continue
-                elif rel_inst.op1.removeprefix("#").isalpha() and len(rel_inst.op1.removeprefix("#")) == 1:
-                    rel_inst.op1 = "#" + str(ord(rel_inst.op1.removeprefix("#")))
+                elif rel_inst.op1.startswith("#") and rel_inst.op1[1:].isalpha() and len(rel_inst.op1[1:]) == 1:
+                    rel_inst.op1 = "#" + str(ord(rel_inst.op1[1:]))
+                elif rel_inst.op2.startswith("#") and rel_inst.op2[1:].isalpha() and len(rel_inst.op2[1:]) == 1:
+                    rel_inst.op2 = "#" + str(ord(rel_inst.op2[1:]))
+                elif rel_inst.op2.count(" ") > 0 or (len(rel_inst.op2[rel_inst.op2.find("#"):]) > 1 and rel_inst.op2[rel_inst.op2.find("#"):].isalpha()):
+                    new_instructions = []
+                    parts = rel_inst.op2.split(" ")
+
+                    amount_dests = len(rel_inst.op2.replace(" ", "").replace("#", ""))
+                    if rel_inst.op1[0].isalpha():
+                        optional_prepend = rel_inst.op1[0]
+                        start = int(rel_inst.op1[1:])
+                        continued_data_labels.append((rel_inst.op1, amount_dests))
+                    elif rel_inst.op1.isnumeric():
+                        optional_prepend = ''
+                        start = int(rel_inst.op1)
+                    else:
+                        raise ValueError(f"Destination '{rel_inst.op1}' is invalid")
+                    destinations = iter([f"{optional_prepend}{i}" for i in range(start, start + amount_dests)])
+
+                    for idx, part in enumerate(parts):
+                        if not part.startswith("#"):
+                            raise ValueError(f"Continued storing can only be used with literal values, not with '{part}'")
+                        placeholder = part[1:]
+                        if placeholder.isnumeric():
+                            new_instructions.extend([f"lda #{placeholder}", f"sta {next(destinations)}"])
+                        else:
+                            for char in placeholder:
+                                new_instructions.extend([f"lda #{ord(char)}", f"sta {next(destinations)}"])
+                    rel_instructions[i] = [Instruction(x) for x in new_instructions]
+                    continue
                 elif rel_inst.op_code.isnumeric():
                     continue
                 elif valid_list is None:
@@ -442,6 +471,20 @@ def main(input: str, output: str, target: _ty.Literal["pASM", "x86-64"]) -> None
     # Here we allocate all the data cells. Data-cell lookup for all d{num} and s{num},
     # this way we can also allocate them in smaller chunks
     data_cell_lookup_table: dict[str, int] = {}
+
+    # Allocated continued data labels.
+    for start_label, length in continued_data_labels:
+        identifier, start = start_label[0], int(start_label[1:])
+        new_address = get_gap_of_size(length, reserved, max_address)
+
+        if new_address == -1:
+            raise ValueError(f"Ran out of available address space (0-{max_address}) "
+                             f"while allocating {length} continued data cells")
+
+        for i, label in enumerate(f"{identifier}{i}" for i in range(start, start + length)):
+            data_cell_lookup_table[label] = new_address + i
+        reserved[new_address] = [Instruction("0")] * length
+
     queue = deque([(list(data_labels), 0)])  # Queue holds (labels_to_allocate, attempt_level)
 
     while queue:
@@ -472,13 +515,14 @@ def main(input: str, output: str, target: _ty.Literal["pASM", "x86-64"]) -> None
                 instruction_list[start + idx] = instructions
 
     logging.debug(f"File list: {instruction_list}")
+    logging.debug(f"Label lookup {label_lookup_table}")
+    logging.debug(f"Data cell lookup {data_cell_lookup_table}")
 
     lookup_table: dict[str, str | int] = {**label_lookup_table, **data_cell_lookup_table}
 
     # Decommission this sometime soon
     for label, address in data_cell_lookup_table.items():
-        lookup_table[f"{label}"] = address
-        lookup_table[f"({label})"] = f"({address})"
+        lookup_table[label] = address
 
     all_placeholders = list(lookup_table.keys()) + ["#idx", "#n"]
 
@@ -494,8 +538,8 @@ def main(input: str, output: str, target: _ty.Literal["pASM", "x86-64"]) -> None
 
         lookup_table["#idx"] = f"#{idx}"
         lookup_table["#n"] = f"#{n}"
-        cell.op1 = replace_placeholders_with_whitespace_condition(cell.op1, all_placeholders, lookup_table)
-        cell.op2 = replace_placeholders_with_whitespace_condition(cell.op2, all_placeholders, lookup_table)
+        cell.op1 = replace_placeholders_with_non_alpha_conditions(cell.op1, all_placeholders, lookup_table)
+        cell.op2 = replace_placeholders_with_non_alpha_conditions(cell.op2, all_placeholders, lookup_table)
 
         if cell.op_code in ("jmp", "jnz", "jze", "jle"):
             if cell.op1.startswith("-") or cell.op1.startswith("+"):
