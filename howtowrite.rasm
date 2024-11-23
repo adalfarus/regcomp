@@ -1,0 +1,36 @@
+00 sta d1, #10 ; Here is the pre-runtime of your program
+.  sta d2, #12
+start: ; Here is where your actual logic starts
+;.  jmp -2 ; This wouldn't work, the pre-runtime and runtime labels are not connected.
+sta x11, o2 ; You can also use any alphabet char + number as a data cell
+sta X11, x11
+
+
+; Make better example
+LEnum: ; Less equal num
+. lda d2
+. sub d3
+. jle +6
+. lda d4
+. sta d10
+. lda d5
+. sta d11
+. ret
+LEnum lda d4 ;Entry point, marked by the repeated use of the same label, these labels are connected.
+. sta d11
+. lda d5
+. sta d10
+. ret
+
+00 lda 2
+. sta 1
+. sta 1
+. sta 1
+. sta 1
+. sta 1
+. sta 1
+. sta 1
+. sta 1
+. sta 1
+10ff jmp -4 ; Use the ff syntax to tell the compiler two indices are part of the same label.
+. sta 11
