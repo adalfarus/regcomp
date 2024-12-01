@@ -363,8 +363,8 @@ def main(input: str, output: str, target: _ty.Literal["pASM", "pASM.c", "x86-64"
             if magic != "EMUL":
                 logging.error(f"Invalid magic number: {magic}")
                 sys.exit(1)
-            operand_size = int.from_bytes(f.read(4))
-            memory_size = int.from_bytes(f.read(4))
+            operand_size = int.from_bytes(f.read(4), "big")
+            memory_size = int.from_bytes(f.read(4), "big")
             logging.info(f"Header: Magic={magic}, Operand Size={operand_size}, Memory Size={memory_size}")
 
             if memory_size > chosen_memory_size:
@@ -383,7 +383,7 @@ def main(input: str, output: str, target: _ty.Literal["pASM", "pASM.c", "x86-64"
                 byte = f.read(1)
                 if not byte:
                     break  # End of file reached
-                opcode = int.from_bytes(byte)
+                opcode = int.from_bytes(byte, "big")
                 if opcode in INSTRUCTION_SET:  # Recognized opcode
                     instruction = INSTRUCTION_SET[opcode]
                     if "STP" == instruction:  # No operand
@@ -394,7 +394,7 @@ def main(input: str, output: str, target: _ty.Literal["pASM", "pASM.c", "x86-64"
                         if len(operand_bytes) < operand_size:
                             logging.error(f"Unexpected end of file when reading operand at address {address:02}")
                             sys.exit(1)
-                        operand = int.from_bytes(operand_bytes)
+                        operand = int.from_bytes(operand_bytes, "big", signed=True)
                         if instruction.endswith("("):  # Indirect addressing
                             pasm_lines.append(f"{address:02} {instruction}{operand})")
                         elif instruction.endswith("#"):  # Immediate addressing
@@ -402,11 +402,13 @@ def main(input: str, output: str, target: _ty.Literal["pASM", "pASM.c", "x86-64"
                         else:  # Direct addressing
                             pasm_lines.append(f"{address:02} {instruction} {operand}")
                 else:  # Treat as raw data
-                    operand_bytes = f.read(operand_size - 1)
-                    if len(operand_bytes) < (operand_size - 1):
+                    operand_bytes = f.read(operand_size)
+                    if len(operand_bytes) < operand_size:
                         logging.error(f"Unexpected end of file when reading data at address {address:02}")
                         sys.exit(1)
-                    data_value = (opcode << (8 + (operand_size * 8) - 16)) | int.from_bytes(operand_bytes)
+                    # data_value = (opcode << (8 + (operand_size * 8) - 16)) | int.from_bytes(operand_bytes, "big")
+                    # data_value = int.from_bytes(data_value.to_bytes(operand_size, "big"), "big", signed=True)
+                    data_value = int.from_bytes(operand_bytes, "big", signed=True)
                     # if data_value == 0:  # 0 is either 0 or NOP, but no worries, all regs are 0/NOP by default
                     #     address += 1
                     #     continue
@@ -863,14 +865,18 @@ def main(input: str, output: str, target: _ty.Literal["pASM", "pASM.c", "x86-64"
             # Fill gaps with NOPs
             while current_address < address:
                 # n-byte NOP opcode/data
-                to_write += INSTRUCTION_SET["NOP"].to_bytes(OPERANT_SIZE, "big")
+                to_write += INSTRUCTION_SET["NOP"].to_bytes(1, "big")
+                to_write += (0).to_bytes(OPERANT_SIZE, "big")
                 current_address += 1
             # Write instruction or data
             if operand is None:  # Data
-                to_write += opcode.to_bytes(OPERANT_SIZE, "big")  # Write data
+                opcode: int
+                operand: int
+                to_write += INSTRUCTION_SET["NOP"].to_bytes(1, "big")
+                to_write += opcode.to_bytes(OPERANT_SIZE, "big", signed=True)  # Write data
             else:  # Instruction
                 to_write += opcode.to_bytes(1, "big")  # 1-byte opcode
-                to_write += operand.to_bytes(OPERANT_SIZE, "big")  # Operand with dynamic size
+                to_write += operand.to_bytes(OPERANT_SIZE, "big", signed=True)  # Operand with dynamic size
             current_address += 1
     elif target == "x86-64":
         if not input.lower().endswith((".rasm", ".txt", ".pasm", ".p")):
