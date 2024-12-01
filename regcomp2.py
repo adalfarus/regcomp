@@ -394,7 +394,7 @@ def main(input: str, output: str, target: _ty.Literal["pASM", "pASM.c", "x86-64"
                         if len(operand_bytes) < operand_size:
                             logging.error(f"Unexpected end of file when reading operand at address {address:02}")
                             sys.exit(1)
-                        operand = int.from_bytes(operand_bytes, "little", signed=True)
+                        operand = int.from_bytes(operand_bytes, "little", signed=opcode == 10)
                         if instruction.endswith("_IND"):  # Indirect addressing
                             pasm_lines.append(f"{address:02} {instruction.removesuffix('_IND')} ({operand})")
                         elif instruction.endswith("_IMM"):  # Immediate addressing
@@ -876,7 +876,7 @@ def main(input: str, output: str, target: _ty.Literal["pASM", "pASM.c", "x86-64"
                 to_write += opcode.to_bytes(OPERANT_SIZE, "little", signed=True)  # Write data
             else:  # Instruction
                 to_write += opcode.to_bytes(1, "little")  # 1-byte opcode
-                to_write += operand.to_bytes(OPERANT_SIZE, "little", signed=True)  # Operand with dynamic size
+                to_write += operand.to_bytes(OPERANT_SIZE, "little", signed=opcode == 10)  # Operand with dynamic size
             current_address += 1
     elif target == "x86-64":
         if not input.lower().endswith((".rasm", ".txt", ".pasm", ".p")):
