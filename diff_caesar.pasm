@@ -23,32 +23,32 @@
 22 lda #0
 23 sta 62
 24 lda #3
-25 sta 66
+25 sta 65
 26 lda #51
 27 sta 67
 28 lda #57
-29 sta 63
-30 lda 66
+29 sta 68
+30 lda 65
 31 sta 64
 32 lda #32
-33 sta 68
+33 sta 66
 34 lda #6
-35 add 68
-36 sta 68
+35 add 66
+36 sta 66
 37 jmp 39
 38 stp
 39 lda (67)
 40 jze 50
 41 add 64
-42 sta (63)
+42 sta (68)
 43 lda #1
 44 add 67
 45 sta 67
 46 lda #1
-47 add 63
-48 sta 63
+47 add 68
+48 sta 68
 49 jmp 39
-50 jmp (68)
+50 jmp (66)
 51 0
 52 0
 53 0
