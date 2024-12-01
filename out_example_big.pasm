@@ -20,7 +20,7 @@
 19 sta 2
 20 lda 5
 21 lda 20
-22 sta 30
+22 sta 28
 23 jmp 21
 24 lda #1
 25 div 20
