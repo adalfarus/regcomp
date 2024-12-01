@@ -29,7 +29,7 @@
 28 lda #57
 29 sta 63
 30 lda 66
-31 sta 64
+31 sta 65
 32 lda #32
 33 sta 68
 34 lda #6
@@ -39,7 +39,7 @@
 38 stp
 39 lda (67)
 40 jze 50
-41 add 64
+41 add 65
 42 sta (63)
 43 lda #1
 44 add 67

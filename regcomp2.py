@@ -337,24 +337,24 @@ def main(input: str, output: str, target: _ty.Literal["pASM", "pASM.c", "x86-64"
         logging.info(f"Converting .p to .pasm")
         # Instruction set mapping for reverse translation
         INSTRUCTION_SET = {
-            10: "LDA #",  # Immediate
-            11: "LDA",  # Direct
-            12: "LDA (",  # Indirect
-            20: "STA",  # Direct
-            21: "STA (",  # Indirect
-            30: "ADD",  # Direct
-            40: "SUB",  # Direct
-            50: "MUL",  # Direct
-            60: "DIV",  # Direct
-            70: "JMP",  # Direct
-            71: "JMP (",  # Indirect
-            80: "JNZ",  # Direct
-            81: "JNZ (",  # Indirect
-            90: "JZE",  # Direct
-            91: "JZE (",  # Indirect
-            92: "JLE",  # Direct
-            93: "JLE (",  # Indirect
-            99: "STP"  # No operand
+            10: "LDA_IMM",  # LDA #xx
+            11: "LDA_DIR",  # LDA xx
+            12: "LDA_IND",  # LDA (xx)
+            20: "STA_DIR",  # STA xx
+            21: "STA_IND",  # STA (xx)
+            30: "ADD_DIR",  # ADD xx
+            40: "SUB_DIR",  # SUB xx
+            50: "MUL_DIR",  # MUL xx
+            60: "DIV_DIR",  # DIV xx
+            70: "JMP_DIR",  # JMP xx
+            71: "JMP_IND",  # JMP (xx)
+            80: "JNZ_DIR",  # JNZ xx
+            81: "JNZ_IND",  # JNZ (xx)
+            90: "JZE_DIR",  # JZE xx
+            91: "JZE_IND",  # JZE (xx)
+            92: "JLE_DIR",  # JLE xx
+            93: "JLE_IND",  # JLE (xx)
+            99: "STP"  # STP (no operand)
         }
         pasm_lines = []
         with io.BytesIO(raw_data) as f:
@@ -363,7 +363,7 @@ def main(input: str, output: str, target: _ty.Literal["pASM", "pASM.c", "x86-64"
             if magic != "EMUL":
                 logging.error(f"Invalid magic number: {magic}")
                 sys.exit(1)
-            operand_size = int.from_bytes(f.read(4), "little")
+            operand_size = int.from_bytes(f.read(1), "little")
             memory_size = int.from_bytes(f.read(4), "little")
             logging.info(f"Header: Magic={magic}, Operand Size={operand_size}, Memory Size={memory_size}")
 
@@ -395,12 +395,12 @@ def main(input: str, output: str, target: _ty.Literal["pASM", "pASM.c", "x86-64"
                             logging.error(f"Unexpected end of file when reading operand at address {address:02}")
                             sys.exit(1)
                         operand = int.from_bytes(operand_bytes, "little", signed=True)
-                        if instruction.endswith("("):  # Indirect addressing
-                            pasm_lines.append(f"{address:02} {instruction}{operand})")
-                        elif instruction.endswith("#"):  # Immediate addressing
-                            pasm_lines.append(f"{address:02} {instruction}{operand}")
+                        if instruction.endswith("_IND"):  # Indirect addressing
+                            pasm_lines.append(f"{address:02} {instruction.removesuffix('_IND')} ({operand})")
+                        elif instruction.endswith("_IMM"):  # Immediate addressing
+                            pasm_lines.append(f"{address:02} {instruction.removesuffix('_IMM')} #{operand}")
                         else:  # Direct addressing
-                            pasm_lines.append(f"{address:02} {instruction} {operand}")
+                            pasm_lines.append(f"{address:02} {instruction.removesuffix('_DIR')} {operand}")
                 else:  # Treat as raw data
                     operand_bytes = f.read(operand_size)
                     if len(operand_bytes) < operand_size:
@@ -856,7 +856,7 @@ def main(input: str, output: str, target: _ty.Literal["pASM", "pASM.c", "x86-64"
         to_write = b""
         # Write header
         to_write += b"EMUL"  # Magic number
-        to_write += OPERANT_SIZE.to_bytes(4, "little")
+        to_write += OPERANT_SIZE.to_bytes(1, "little")
         to_write += MEMORY_SIZE.to_bytes(4, "little")
 
         # Write instructions and fill gaps with NOPs
@@ -956,6 +956,9 @@ if __name__ == "__main__":
     output = os.path.abspath(args.o or args.output)
     if not os.path.exists(input):
         logging.error(f"The input file ({input}) needs to exist")
+        sys.exit(1)
+    elif args.target_operant_size > 4:
+        logging.error(f"The target operant size ({args.target_operant_size}) is bigger than the maximum allowed of 4")
         sys.exit(1)
     logging.info(f"Reading {input}, writing {output}")
 
