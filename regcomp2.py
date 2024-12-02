@@ -750,10 +750,10 @@ def main(input: str, output: str, target: _ty.Literal["pASM", "pASM.c", "x86-64"
                     continue
         else:
             logging.debug(f"Skipped placeholder replacement and rel-jump resolution")
-        if (int("0" + cell.op1.strip("#()")).bit_length() + 7) // 8 > target_operant_size:
+        if (int(cell.op1.strip("#()") or "0").bit_length() + 7) // 8 > target_operant_size:
             logging.error(f"Op1 of '{cell}' is larger than the target operant size")
             sys.exit(1)
-        elif (int("0" + cell.op2.strip("#()")).bit_length() + 7) // 8 > target_operant_size:
+        elif (int(cell.op2.strip("#()") or "0").bit_length() + 7) // 8 > target_operant_size:
             logging.error(f"Op2 of '{cell}' is larger than the target operant size")
             sys.exit(1)
         file_list.append(f"{idx} {cell}\n")
