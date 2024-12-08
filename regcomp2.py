@@ -1,7 +1,7 @@
 """
 REG-COMP 2.0
 Interface:
-py regcomp2.py {input} {output} --target={pASM/pASM.c/x86-64} --target-operant-size={} --target-memory-size={} --logging-mode={DEBUG/INFO/WARN/ERROR}
+py regcomp2.py {input} {output} --target={pASM/pASM.c/x86-64} --target-operand-size={} --target-memory-size={} --logging-mode={DEBUG/INFO/WARN/ERROR}
 """
 from collections import defaultdict, deque
 from traceback import format_exc
@@ -371,7 +371,7 @@ def main(input: str, output: str, target: _ty.Literal["pASM", "pASM.c", "x86-64"
                 logging.error(f"Read memory size {memory_size} is larger than chosen memory size {chosen_memory_size}")
                 sys.exit(1)
             elif operand_size > target_operant_size:
-                logging.error(f"Read operant size {operand_size} is larger than target operant size {target_operant_size}")
+                logging.error(f"Read operand size {operand_size} is larger than target operand size {target_operant_size}")
                 sys.exit(1)
             logging.info(f"Reset chosen memory size to {memory_size} to match read memory size")
             chosen_memory_size = memory_size
@@ -387,7 +387,7 @@ def main(input: str, output: str, target: _ty.Literal["pASM", "pASM.c", "x86-64"
                 if opcode in INSTRUCTION_SET:  # Recognized opcode
                     instruction = INSTRUCTION_SET[opcode]
                     if "STP" == instruction:  # No operand
-                        f.read(operand_size)  # Need to discard the operant bits
+                        f.read(operand_size)  # Need to discard the operand bits
                         pasm_lines.append(f"{address:02} {instruction}")
                     else:
                         operand_bytes = f.read(operand_size)
@@ -751,10 +751,10 @@ def main(input: str, output: str, target: _ty.Literal["pASM", "pASM.c", "x86-64"
         else:
             logging.debug(f"Skipped placeholder replacement and rel-jump resolution")
         if (int(cell.op1.strip("#()") or "0").bit_length() + 7) // 8 > target_operant_size:
-            logging.error(f"Op1 of '{cell}' is larger than the target operant size")
+            logging.error(f"Op1 of '{cell}' is larger than the target operand size")
             sys.exit(1)
         elif (int(cell.op2.strip("#()") or "0").bit_length() + 7) // 8 > target_operant_size:
-            logging.error(f"Op2 of '{cell}' is larger than the target operant size")
+            logging.error(f"Op2 of '{cell}' is larger than the target operand size")
             sys.exit(1)
         file_list.append(f"{idx} {cell}\n")
         n += 1
@@ -933,8 +933,8 @@ if __name__ == "__main__":
     parser.add_argument("-o", nargs="?", default="", help="Path to the output file")
     parser.add_argument("--target", choices=["pASM", "pASM.c", "x86-64"], required=True,
                         help="Compilation target: pASM, pASM.c or x86-64")
-    parser.add_argument("--target-operant-size", type=positive_nonzero_int, default=2,
-                        help="A positive integer specifying the target operant size in bytes")
+    parser.add_argument("--target-operand-size", type=positive_nonzero_int, default=2,
+                        help="A positive integer specifying the target operand size in bytes")
     parser.add_argument("--target-memory-size", type=positive_nonzero_int, default=0,
                         help="A positive integer specifying the target memory size in bytes")
     parser.add_argument("--logging-mode", choices=["DEBUG", "INFO", "WARN", "ERROR"], default="INFO",
@@ -958,7 +958,7 @@ if __name__ == "__main__":
         logging.error(f"The input file ({input}) needs to exist")
         sys.exit(1)
     elif args.target_operant_size > 4:
-        logging.error(f"The target operant size ({args.target_operant_size}) is bigger than the maximum allowed of 4")
+        logging.error(f"The target operand size ({args.target_operant_size}) is bigger than the maximum allowed of 4")
         sys.exit(1)
     logging.info(f"Reading {input}, writing {output}")
 
